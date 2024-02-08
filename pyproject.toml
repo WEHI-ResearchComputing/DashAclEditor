@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "acledit"
+version = "0.1.0"
+description = "Dash GUI for editing Posix file acess control lists (ACLs)"
+authors = ["Michael Milton <ttmigueltt@gmail.com>"]
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+dash = "^2.15.0"
+dash-bootstrap-components = "^1.5.0"
+pylibacl = "^0.7.0"
+ldap3 = "^2.9.1"
+pydantic = "^2.6.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
