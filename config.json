@@ -1,4 +1,8 @@
 {
     "python": "/home/users/allstaff/milton.m/.cache/pypoetry/virtualenvs/acledit-hW7vFl_M-py3.11/bin/python",
-    "start_dir": "/vast"
+    "start_dir": "/vast",
+    "shortcuts": {
+        "VAST": "/vast",
+        "My Scratch": "/vast/scratch/users/{user}"
+    }
 }
