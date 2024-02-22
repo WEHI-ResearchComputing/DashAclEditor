@@ -3,7 +3,6 @@ from typing import Iterable, TypeAlias, Literal
 import posix1e as acl 
 import pwd
 import grp
-import os
 
 ACL_PERMISSION: TypeAlias = Literal[
     acl.ACL_WRITE,

@@ -16,7 +16,7 @@ app.layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(
-                    sm=8,
+                    sm=12,
                     children=[
                         html.H1(
                             children="Access Control", style={"textAlign": "center"}
