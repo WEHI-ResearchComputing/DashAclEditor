@@ -10,13 +10,14 @@ from dash import (
     html,
     clientside_callback,
 )
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from acledit.components.icon import FontAwesomeIcon
-from acledit.components.utils import declare_child
+from acledit.components.utils import declare_child, real_event
 from acledit.config import config
 from pathlib import Path
 from getpass import getuser
-
+import os
 
 class FileBrowserFile(dbc.ListGroupItem):
     def __init__(self, parent_id: str, file: Path, name: str | None = None):
@@ -139,6 +140,8 @@ class FileBrowser(dbc.Row):
     Input(FileBrowser.current_path(MATCH), "data"),
 )
 def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
+    if not real_event():
+        return []
     parent_id = ctx.triggered_id["aio_id"]
     new_children = [
         dbc.ListGroupItem(
@@ -153,22 +156,23 @@ def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
         new_children.append(FileBrowserFile(parent_id, file=file))
     return new_children
 
-
 @callback(
     Output(FileBrowser.current_path(MATCH), "data"),
     Input(FileBrowser._dir_browse(MATCH, filename=ALL), "n_clicks"),
+    State(FileBrowser.current_path(MATCH), "data")
 )
-def browse_dir(_n_clicks: int) -> str:
-    if ctx.triggered_id is None:
-        # This happens when the app first initializes
-        return str(config.start_dir)
-    else:
+def browse_dir(_n_clicks: int, current_path: str) -> str:
+    if real_event(0):
         new_path: str = ctx.triggered_id["filename"]
-        if Path(new_path).is_dir():
-            return new_path
-        else:
+        if not Path(new_path).is_dir():
             raise Exception("Not a directory")
-
+        elif not os.access(new_path, os.R_OK | os.X_OK):
+            raise Exception("Don't have permission to browse here.")
+        else:
+            return new_path
+    else:
+        # If a button wasn't really pressed, don't do anything
+        return current_path
 
 @callback(
     Output(FileBrowser.current_path(MATCH), "data", allow_duplicate=True),
@@ -177,7 +181,7 @@ def browse_dir(_n_clicks: int) -> str:
     prevent_initial_call=True,
 )
 def up_dir(n_clicks: int | None, current_dir: str) -> str:
-    if n_clicks is not None:
+    if n_clicks is not None and real_event():
         return str(Path(current_dir).parent)
     else:
         return current_dir

@@ -1,7 +1,7 @@
 import contextlib
 import functools
 import uuid
-from dash import MATCH
+from dash import MATCH, callback_context as ctx
 from dash.dependencies import _Wildcard
 from typing import Callable, TypeAlias, NewType
 
@@ -52,3 +52,23 @@ def declare_child(child: str, **kwargs: ParentId) -> Callable[..., IdDict]:
         }) #make_id(child=child, parent=parent)
 
     return _make_id
+
+def real_event(input_index: int | None = None) -> bool:
+    """
+    Tests whether the current dash trigger event was an organic
+    even triggered by a user, as opposed to an automatic event
+    caused by another event or by the app starting
+    """
+    if ctx.triggered_id is not None:
+        args_grouping = ctx.args_grouping
+        if input_index is not None:
+            # If the event has multiple inputs or state, then the top level args_grouping is a 
+            # list that we have to index
+            args_grouping = ctx.args_grouping[input_index]
+        if not isinstance(args_grouping, list):
+            args_grouping = [args_grouping]
+        for group in args_grouping:
+            if group["id"] == ctx.triggered_id:
+                if group["value"] is not None:
+                    return True
+    return False
