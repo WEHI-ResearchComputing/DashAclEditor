@@ -3,6 +3,7 @@ from typing import Iterable, TypeAlias, Literal
 import posix1e as acl 
 import pwd
 import grp
+import sys
 
 ACL_PERMISSION: TypeAlias = Literal[
     acl.ACL_WRITE,
@@ -19,6 +20,14 @@ ACL_TYPE_STR: TypeAlias = Literal[
     "mask",
     "undefined"
 ]
+
+STR_TO_ERROR = dict(
+    multi_error = acl.ACL_MULTI_ERROR,
+    duplicate_error = acl.ACL_DUPLICATE_ERROR,
+    miss_error = acl.ACL_MISS_ERROR,
+    entry_error = acl.ACL_ENTRY_ERROR
+)
+ERROR_TO_STR = {value: key for key, value in STR_TO_ERROR.items()}
 
 STR_TO_ACL_TYPE: dict[ACL_TYPE_STR, int] = dict(
     user = acl.ACL_USER,
@@ -72,9 +81,21 @@ class AclSet(BaseModel):
             default_acls=list(AclEntry.from_acl(acl.ACL(filedef=path)))
         )
 
+def validate_acl(acl: acl.ACL) -> str | None:
+    """
+    If the ACL is invalid, returns a string explaining the issue
+    """
+    if acl.valid():
+        return None
+    if sys.platform == "linux":
+        error_type, index = acl.check()
+        error_str = ERROR_TO_STR[error_type]
+        failing_entry = list(AclEntry.from_acl(acl))[index]
+        return f"{error_str}: {failing_entry}"
+
 def grant_user(file_path: str, user_id: int, permissions: list[ACL_PERMISSION] = []):
     """
-    Creates a new ACL on the file specified that grants permissions to the user specified.
+    Creates a new ACL entry on the file specified that grants permissions to the user specified.
     Params:
         permissions: A list of permissions such as `posix1e.ACL_WRITE`
     """

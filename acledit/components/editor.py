@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 from acledit.components.utils import declare_child
 from dash.exceptions import PreventUpdate
 from acledit.acl import AclSet
+from acledit.components.icon import FontAwesomeIcon
 
 
 class AclEditorModal(html.Div):
@@ -17,6 +18,7 @@ class AclEditorModal(html.Div):
     _acls_body = declare_child("acls_body")
     _default_acls_body = declare_child("default_acls_body")
     _modal = declare_child("modal")
+    _save = declare_child("save")
 
     def __init__(self, id: str, **kwargs):
         super().__init__(
@@ -46,6 +48,7 @@ class AclEditorModal(html.Div):
                                             html.Tbody(id=AclEditorModal._acls_body(id)),
                                         ]
                                     ),
+                                    dbc.Button("New ACL", class_name="btn-block"),
                                     html.H3("Default Access Control"),
                                     dbc.Table(
                                         [
@@ -57,22 +60,28 @@ class AclEditorModal(html.Div):
                                                         html.Th("Read"),
                                                         html.Th("Write"),
                                                         html.Th("Execute"),
+                                                        html.Th("Delete"),
                                                     ]
                                                 )
                                             ),
                                             html.Tbody(id=AclEditorModal._default_acls_body(id)),
                                         ]
-                                    )
+                                    ),
+                                    dbc.Button("New ACL", class_name="btn-block"),
                                 ]
                             )
                         ),
-                        dbc.ModalFooter(
+                        dbc.ModalFooter([
+                            dbc.Button(
+                                "Save",
+                                n_clicks=0,
+                            ),
                             dbc.Button(
                                 "Close",
-                                className="ms-auto",
+                                color="secondary",
                                 n_clicks=0,
                             )
-                        ),
+                        ]),
                     ],
                     is_open=False,
                     id=AclEditorModal._modal(id)
@@ -100,10 +109,12 @@ def open_modal(filename: str | None) -> tuple[Literal[True], str, list[html.Tr],
         html.Td(dbc.Checkbox(value=entry.read)),
         html.Td(dbc.Checkbox(value=entry.write)),
         html.Td(dbc.Checkbox(value=entry.execute)),
+        html.Td(dbc.Button(FontAwesomeIcon("trash"), color="danger")),
     ]) for entry in acls.acls], [html.Tr([
         html.Td(entry.tag_type),
         html.Td(entry.qualifier),
         html.Td(dbc.Checkbox(value=entry.read)),
         html.Td(dbc.Checkbox(value=entry.write)),
         html.Td(dbc.Checkbox(value=entry.execute)),
+        html.Td(dbc.Button(FontAwesomeIcon("trash"), color="danger")),
     ]) for entry in acls.default_acls]

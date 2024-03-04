@@ -102,7 +102,7 @@ def execute_share(_n_clicks: int, current_file: str, share_user: str) -> list:
         current_uid = os.getuid()
 
         try:
-            pwd.getpwnam(share_user)
+            recipient_id = pwd.getpwnam(share_user).pw_uid
         except KeyError as e:
             return [dbc.Alert(
                 f"Username {share_user} is not a valid Milton user!",
@@ -131,7 +131,7 @@ def execute_share(_n_clicks: int, current_file: str, share_user: str) -> list:
             if parent.owner() == share_user:
                 grant_user(str(parent), current_uid, [acl.ACL_EXECUTE])
 
-        grant_user(current_file, current_uid, [acl.ACL_EXECUTE, acl.ACL_READ])
+        grant_user(current_file, recipient_id, [acl.ACL_EXECUTE, acl.ACL_READ])
 
         return [dbc.Alert(
             f"File successfully shared!",
