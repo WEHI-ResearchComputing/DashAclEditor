@@ -54,7 +54,11 @@ def real_event(input_index: int | None = None) -> bool:
     """
     Tests whether the current dash trigger event was an organic
     even triggered by a user, as opposed to an automatic event
-    caused by another event or by the app starting
+    caused by another event or by the app starting.
+
+    Params:
+        input_index: This should be set in the case where there are multiple matching inputs for a given event. 
+            In other words, if ALL is used in the callback, then this should be set to an index.
     """
     if ctx.triggered_id is not None:
         args_grouping = ctx.args_grouping

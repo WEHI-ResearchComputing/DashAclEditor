@@ -1,4 +1,5 @@
 from dash import Dash, html, Input, Output, ALL, dcc, ctx
+from acledit.components.utils import real_event
 from acledit.config import config
 import dash_bootstrap_components as dbc
 from acledit.components.browser import FileBrowser
@@ -44,7 +45,7 @@ app.layout = dbc.Container(
     prevent_initial_call=True
 )
 def edit_file(n_clicks: list[int]):
-    if ctx.triggered_id is None or not any(n_clicks):
+    if ctx.triggered_id is None or not real_event():
         return None
 
     return ctx.triggered_id["filename"]
@@ -56,7 +57,7 @@ def edit_file(n_clicks: list[int]):
     prevent_initial_call=True
 )
 def share_file(n_clicks: list[int]):
-    if ctx.triggered_id is None or not any(n_clicks):
+    if ctx.triggered_id is None or not real_event():
         return None
 
     return ctx.triggered_id["filename"]

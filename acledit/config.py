@@ -10,6 +10,28 @@ def interpolate_start_dir(v: str) -> Path:
     pwd_struct = getpwuid(getuid())
     return Path(v.format(user=pwd_struct.pw_name, home=pwd_struct.pw_dir))
 
+class Hints(BaseModel):
+    
+    recursive: Annotated[
+        str,
+        Field(
+            description='An optional string that will be added onto the text used to describe the "recursive" share option.'
+        ),
+    ] = ""
+
+    edit: Annotated[
+        str,
+        Field(
+            description='An optional string that will be added onto the text used to describe the "grant edit" share option.'
+        ),
+    ] = ""
+
+    default: Annotated[
+        str,
+        Field(
+            description='An optional string that will be added onto the text used to describe the "default" share option.'
+        ),
+    ] = ""
 
 class Config(BaseModel):
 
@@ -41,6 +63,8 @@ class Config(BaseModel):
             description='A dictionary of "shortcuts" in the file browser. Each key is a shortcut name, and each value is a path. The variables `{user}` and `{home}` can be used.'
         ),
     ] = {}
+
+    hints: Annotated[Hints, Field(description="Hints used to add site-specific text to sharing options")] = Hints()
 
 
 with open("config.json", "rb") as f:

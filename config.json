@@ -4,5 +4,9 @@
     "shortcuts": {
         "VAST": "/vast",
         "My Scratch": "/vast/scratch/users/{user}"
+    },
+    "hints": {
+        "recursive": " On Milton, this is generally only needed if you are also granting edit permissions.",
+        "default": " On Milton, this is generally only needed if you are also granting edit permissions."
     }
 }

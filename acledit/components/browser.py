@@ -33,32 +33,24 @@ class FileBrowserFile(dbc.ListGroupItem):
             dbc.Row(
                 [
                     dbc.Col(
-                        [
-                            (
-                                FontAwesomeIcon("folder")
-                                if file.is_dir()
-                                else FontAwesomeIcon("file")
-                            ),
-                            name,
-                        ],
-                        md=6,
+                        html.A(
+                            [
+                                (
+                                    FontAwesomeIcon("folder")
+                                    if file.is_dir()
+                                    else FontAwesomeIcon("file")
+                                ),
+                                name,
+                            ],
+                            href="#",
+                            id=FileBrowser._dir_browse(
+                                aio_id=parent_id, filename=str(file)
+                            )
+                        )
                     ),
                     dbc.Col(
                         dbc.ButtonGroup(
                             [
-                                dbc.Button(
-                                    [FontAwesomeIcon("folder-open"), "Browse"],
-                                    id=FileBrowser._dir_browse(
-                                        aio_id=parent_id, filename=str(file)
-                                    ),
-                                    disabled=not_dir,
-                                    title=(
-                                        "You can only browse into directories"
-                                        if not_dir
-                                        else None
-                                    ),
-                                    className="btn btn-primary",
-                                ),
                                 dbc.Button(
                                     [FontAwesomeIcon("share"), "Share"],
                                     id=FileBrowser.share(
@@ -105,7 +97,8 @@ class FileBrowser(dbc.Row):
     _dir_up = declare_child("dir_up")
     _dir_browse = declare_child("dir_browse", filename=ALL)
     _main_panel_title = declare_child("main_panel_title")
-    # _shortcut = declare_child("my_scratch")
+    _dir_go_input = declare_child("dir_go_input")
+    _dir_go_button = declare_child("dir_go_button")
 
     def __init__(self, id: str):
         self._id = id
@@ -124,13 +117,15 @@ class FileBrowser(dbc.Row):
                     ],
                     md=4,
                 ),
-                dbc.Col(
-                    [
-                        html.H3(id=FileBrowser._main_panel_title(id), children="Files"),
-                        dbc.ListGroup(id=self._file_list(id)),
-                    ],
-                    md=8,
-                ),
+                dbc.Col([
+                    html.H3(id=FileBrowser._main_panel_title(id), children="Files"),
+                    dbc.InputGroup([
+                        dbc.InputGroupText(FontAwesomeIcon("pen")),
+                        dbc.Input(id=self._dir_go_input(id)),
+                        dbc.InputGroupText(dbc.Button("Go", id=self._dir_go_button(id)))
+                    ]),
+                    dbc.ListGroup(id=self._file_list(id)),
+                ], md=8),
             ]
         )
 
@@ -146,7 +141,7 @@ def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
     new_children = [
         dbc.ListGroupItem(
             children=[FontAwesomeIcon("arrow-left-long"), "Back"],
-            id=FileBrowser._dir_up(aio_id=parent_id),
+            id=FileBrowser._dir_up(parent_id),
             href="#",
         )
     ]
@@ -176,6 +171,15 @@ def browse_dir(_n_clicks: int, current_path: str) -> str:
 
 @callback(
     Output(FileBrowser.current_path(MATCH), "data", allow_duplicate=True),
+    Input(FileBrowser._dir_go_button(MATCH), "n_clicks"),
+    State(FileBrowser._dir_go_input(MATCH), "value"),
+    prevent_initial_call=True
+)
+def dir_go(_n_clicks: int, path: str) -> str:
+    return path
+
+@callback(
+    Output(FileBrowser.current_path(MATCH), "data", allow_duplicate=True),
     Input(FileBrowser._dir_up(MATCH), "n_clicks"),
     State(FileBrowser.current_path(MATCH), "data"),
     prevent_initial_call=True,
@@ -188,8 +192,9 @@ def up_dir(n_clicks: int | None, current_dir: str) -> str:
 
 @callback(
     Output(FileBrowser._main_panel_title(MATCH), "children"),
+    Output(FileBrowser._dir_go_input(MATCH), "value"),
     Input(FileBrowser.current_path(MATCH), "data"),
     prevent_initial_call=True,
 )
-def update_title(current_dir: str) -> str:
-    return current_dir
+def update_title(current_dir: str) -> tuple[str, str]:
+    return current_dir, current_dir
