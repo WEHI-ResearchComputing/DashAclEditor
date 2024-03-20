@@ -42,7 +42,7 @@ class Config(BaseModel):
         ),
     ]
 
-    prefix: Annotated[
+    url_prefix: Annotated[
         str,
         Field(
             description='The prefix at which the web app will be available, including a leading and trailing slash. For example, when installed in the dev sandbox for OnDemand, this might be "/pun/dev/AclEditorDash/"'
@@ -65,6 +65,12 @@ class Config(BaseModel):
     ] = {}
 
     hints: Annotated[Hints, Field(description="Hints used to add site-specific text to sharing options")] = Hints()
+
+    fs_mounts: Annotated[list[Path], Field(description="A list of paths for which ACLs will be considered to be enabled and supported")] = [Path("/")]
+
+    def has_acls(self, path: Path) -> bool:
+        "Returns True if the given path supports ACLs"
+        return any(path.is_relative_to(mount) for mount in self.fs_mounts)
 
 
 with open("config.json", "rb") as f:

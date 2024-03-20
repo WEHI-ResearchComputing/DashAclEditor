@@ -8,9 +8,7 @@ from dash import (
     MATCH,
     State,
     html,
-    clientside_callback,
 )
-from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from acledit.components.icon import FontAwesomeIcon
 from acledit.components.utils import declare_child, real_event
@@ -18,6 +16,8 @@ from acledit.config import config
 from pathlib import Path
 from getpass import getuser
 import os
+from dash.exceptions import PreventUpdate
+
 
 class FileBrowserFile(dbc.ListGroupItem):
     def __init__(self, parent_id: str, file: Path, name: str | None = None):
@@ -25,8 +25,16 @@ class FileBrowserFile(dbc.ListGroupItem):
         Params:
             name: Optional name for the path, otherwise the filename is used
         """
-        not_dir = not file.is_dir()
         not_owned = file.owner() != getuser()
+        acl_mount = config.has_acls(file)
+        disabled = not_owned or not acl_mount
+
+        error_message: str | None = None
+        if not_owned:
+            error_message = "You can only share files that you own"
+        elif not acl_mount:
+            error_message = "This file is not part of a filesystem that supports ACLs"
+
         if name is None:
             name = file.name
         super().__init__(
@@ -45,7 +53,7 @@ class FileBrowserFile(dbc.ListGroupItem):
                             href="#",
                             id=FileBrowser._dir_browse(
                                 aio_id=parent_id, filename=str(file)
-                            )
+                            ),
                         )
                     ),
                     dbc.Col(
@@ -56,24 +64,16 @@ class FileBrowserFile(dbc.ListGroupItem):
                                     id=FileBrowser.share(
                                         aio_id=parent_id, filename=str(file)
                                     ),
-                                    title=(
-                                        "You can only share files that you own"
-                                        if not_owned
-                                        else None
-                                    ),
-                                    disabled=not_owned,
+                                    title=error_message,
+                                    disabled=disabled,
                                 ),
                                 dbc.Button(
                                     [FontAwesomeIcon("pen-to-square"), "Edit"],
                                     id=FileBrowser.edit(
                                         aio_id=parent_id, filename=str(file)
                                     ),
-                                    title=(
-                                        "You can only share files that you own"
-                                        if not_owned
-                                        else None
-                                    ),
-                                    disabled=not_owned,
+                                    title=error_message,
+                                    disabled=disabled,
                                 ),
                             ]
                         ),
@@ -117,15 +117,22 @@ class FileBrowser(dbc.Row):
                     ],
                     md=4,
                 ),
-                dbc.Col([
-                    html.H3(id=FileBrowser._main_panel_title(id), children="Files"),
-                    dbc.InputGroup([
-                        dbc.InputGroupText(FontAwesomeIcon("pen")),
-                        dbc.Input(id=self._dir_go_input(id)),
-                        dbc.InputGroupText(dbc.Button("Go", id=self._dir_go_button(id)))
-                    ]),
-                    dbc.ListGroup(id=self._file_list(id)),
-                ], md=8),
+                dbc.Col(
+                    [
+                        html.H3(id=FileBrowser._main_panel_title(id), children="Files"),
+                        dbc.InputGroup(
+                            [
+                                dbc.InputGroupText(FontAwesomeIcon("pen")),
+                                dbc.Input(id=self._dir_go_input(id)),
+                                dbc.InputGroupText(
+                                    dbc.Button("Go", id=self._dir_go_button(id))
+                                ),
+                            ]
+                        ),
+                        dbc.ListGroup(id=self._file_list(id)),
+                    ],
+                    md=8,
+                ),
             ]
         )
 
@@ -151,10 +158,11 @@ def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
         new_children.append(FileBrowserFile(parent_id, file=file))
     return new_children
 
+
 @callback(
     Output(FileBrowser.current_path(MATCH), "data"),
     Input(FileBrowser._dir_browse(MATCH, filename=ALL), "n_clicks"),
-    State(FileBrowser.current_path(MATCH), "data")
+    State(FileBrowser.current_path(MATCH), "data"),
 )
 def browse_dir(_n_clicks: int, current_path: str) -> str:
     if real_event(0):
@@ -169,14 +177,19 @@ def browse_dir(_n_clicks: int, current_path: str) -> str:
         # If a button wasn't really pressed, don't do anything
         return current_path
 
+
 @callback(
     Output(FileBrowser.current_path(MATCH), "data", allow_duplicate=True),
     Input(FileBrowser._dir_go_button(MATCH), "n_clicks"),
     State(FileBrowser._dir_go_input(MATCH), "value"),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def dir_go(_n_clicks: int, path: str) -> str:
-    return path
+    p = Path(path).expanduser().resolve()
+    if not p.exists():
+        raise PreventUpdate()
+    else:
+        return str(p)
 
 @callback(
     Output(FileBrowser.current_path(MATCH), "data", allow_duplicate=True),
@@ -189,6 +202,7 @@ def up_dir(n_clicks: int | None, current_dir: str) -> str:
         return str(Path(current_dir).parent)
     else:
         return current_dir
+
 
 @callback(
     Output(FileBrowser._main_panel_title(MATCH), "children"),

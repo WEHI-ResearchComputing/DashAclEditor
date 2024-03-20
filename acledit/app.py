@@ -8,7 +8,7 @@ from acledit.components.share import AclShareModal
 
 app = Dash(
     __name__,
-    requests_pathname_prefix=config.prefix,
+    requests_pathname_prefix=config.url_prefix,
     external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME],
 )
 
