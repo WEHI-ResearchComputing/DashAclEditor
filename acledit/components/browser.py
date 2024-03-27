@@ -17,15 +17,21 @@ from pathlib import Path
 from getpass import getuser
 import os
 from dash.exceptions import PreventUpdate
-
+import pwd
 
 class FileBrowserFile(dbc.ListGroupItem):
+    share = declare_child("share", filename=ALL)
+    edit = declare_child("edit", filename=ALL)
+    status = declare_child("edit", filename=ALL)
+
     def __init__(self, parent_id: str, file: Path, name: str | None = None):
         """
         Params:
             name: Optional name for the path, otherwise the filename is used
         """
-        not_owned = file.owner() != getuser()
+        # We specifically don't care about the target of the symlink in this case
+        stat = file.stat(follow_symlinks=False)
+        not_owned = pwd.getpwuid(stat.st_uid).pw_name != getuser()
         acl_mount = config.has_acls(file)
         disabled = not_owned or not acl_mount
 
@@ -61,7 +67,7 @@ class FileBrowserFile(dbc.ListGroupItem):
                             [
                                 dbc.Button(
                                     [FontAwesomeIcon("share"), "Share"],
-                                    id=FileBrowser.share(
+                                    id=FileBrowserFile.share(
                                         aio_id=parent_id, filename=str(file)
                                     ),
                                     title=error_message,
@@ -69,7 +75,15 @@ class FileBrowserFile(dbc.ListGroupItem):
                                 ),
                                 dbc.Button(
                                     [FontAwesomeIcon("pen-to-square"), "Edit"],
-                                    id=FileBrowser.edit(
+                                    id=FileBrowserFile.edit(
+                                        aio_id=parent_id, filename=str(file)
+                                    ),
+                                    title=error_message,
+                                    disabled=disabled,
+                                ),
+                                dbc.Button(
+                                    [FontAwesomeIcon("pen-to-square"), "Edit"],
+                                    id=FileBrowserFile.edit(
                                         aio_id=parent_id, filename=str(file)
                                     ),
                                     title=error_message,
@@ -89,8 +103,6 @@ class FileBrowserFile(dbc.ListGroupItem):
 class FileBrowser(dbc.Row):
     # Public
     current_path = declare_child("current_path")
-    share = declare_child("share", filename=ALL)
-    edit = declare_child("edit", filename=ALL)
 
     # Private
     _file_list = declare_child("file_list")

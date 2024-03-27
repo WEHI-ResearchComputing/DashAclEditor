@@ -8,5 +8,6 @@
     "hints": {
         "recursive": " On Milton, this is generally only needed if you are also granting edit permissions.",
         "default": " On Milton, this is generally only needed if you are also granting edit permissions."
-    }
+    },
+    "fs_mounts": ["/vast"]
 }
