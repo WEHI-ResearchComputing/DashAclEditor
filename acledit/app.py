@@ -40,7 +40,7 @@ app.layout = dbc.Container(
 )
 
 @app.callback(
-    Output(AclEditorModal.current_file("acl_status"), "data"),
+    Output(AclShareModal.current_file("acl_status"), "data"),
     Input(FileBrowserFile.status(aio_id="file-browser", filename = ALL), "n_clicks"),
     prevent_initial_call=True
 )

@@ -74,9 +74,10 @@ class FileBrowserFile(dbc.ListGroupItem):
                                     disabled=disabled,
                                 ),
                                 dbc.Button(
-                                    [FontAwesomeIcon("pen-to-square"), "Edit"],
-                                    id=FileBrowserFile.edit(
-                                        aio_id=parent_id, filename=str(file)
+                                    [FontAwesomeIcon("cog"), "Status"],
+                                    id=FileBrowserFile.status(
+                                        aio_id=parent_id,
+                                        filename=str(file)
                                     ),
                                     title=error_message,
                                     disabled=disabled,
@@ -88,7 +89,7 @@ class FileBrowserFile(dbc.ListGroupItem):
                                     ),
                                     title=error_message,
                                     disabled=disabled,
-                                ),
+                                )
                             ]
                         ),
                         className="justify-content-end d-flex",
