@@ -6,8 +6,8 @@
         "My Scratch": "/vast/scratch/users/{user}"
     },
     "hints": {
-        "recursive": " On Milton, this is generally only needed if you are also granting edit permissions.",
-        "default": " On Milton, this is generally only needed if you are also granting edit permissions."
+        "recursive": " Warning: this setting edits the ACL of multiple files meaning that mistakes can be difficult to fix.",
+        "default": ""
     },
     "fs_mounts": ["/vast"]
 }

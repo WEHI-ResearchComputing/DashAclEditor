@@ -40,8 +40,8 @@ app.layout = dbc.Container(
 )
 
 @app.callback(
-    Output(AclShareModal.current_file("acl_status"), "data"),
-    Input(FileBrowserFile.status(aio_id="file-browser", filename = ALL), "n_clicks"),
+    Output(AclStatusModal.current_file("acl_status"), "data"),
+    Input(FileBrowserFile.status(aio_id="file-browser", filename = ALL, shortcut= ALL), "n_clicks"),
     prevent_initial_call=True
 )
 def file_status(n_clicks: list[int]):
@@ -53,7 +53,7 @@ def file_status(n_clicks: list[int]):
 # The edit button should trigger the ACL editor modal
 @app.callback(
     Output(AclEditorModal.current_file("acl_editor"), "data"),
-    Input(FileBrowserFile.edit(aio_id="file-browser", filename = ALL), "n_clicks"),
+    Input(FileBrowserFile.edit(aio_id="file-browser", filename = ALL, shortcut= ALL), "n_clicks"),
     prevent_initial_call=True
 )
 def edit_file(n_clicks: list[int]):
@@ -65,7 +65,7 @@ def edit_file(n_clicks: list[int]):
 # The share button should trigger the ACL share modal
 @app.callback(
     Output(AclShareModal.current_file("acl_share"), "data"),
-    Input(FileBrowserFile.share(aio_id="file-browser", filename = ALL), "n_clicks"),
+    Input(FileBrowserFile.share(aio_id="file-browser", filename = ALL, shortcut= ALL), "n_clicks"),
     prevent_initial_call=True
 )
 def share_file(n_clicks: list[int]):

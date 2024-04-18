@@ -22,12 +22,13 @@ import pwd
 class FileBrowserFile(dbc.ListGroupItem):
     share = declare_child("share", filename=ALL)
     edit = declare_child("edit", filename=ALL)
-    status = declare_child("edit", filename=ALL)
+    status = declare_child("status", filename=ALL)
 
-    def __init__(self, parent_id: str, file: Path, name: str | None = None):
+    def __init__(self, parent_id: str, file: Path, name: str | None = None, **kwargs):
         """
         Params:
             name: Optional name for the path, otherwise the filename is used
+            kwargs: Other distinguishing arguments
         """
         # We specifically don't care about the target of the symlink in this case
         stat = file.stat(follow_symlinks=False)
@@ -58,7 +59,7 @@ class FileBrowserFile(dbc.ListGroupItem):
                             ],
                             href="#",
                             id=FileBrowser._dir_browse(
-                                aio_id=parent_id, filename=str(file)
+                                aio_id=parent_id, filename=str(file), **kwargs
                             ),
                         )
                     ),
@@ -68,7 +69,7 @@ class FileBrowserFile(dbc.ListGroupItem):
                                 dbc.Button(
                                     [FontAwesomeIcon("share"), "Share"],
                                     id=FileBrowserFile.share(
-                                        aio_id=parent_id, filename=str(file)
+                                        aio_id=parent_id, filename=str(file), **kwargs
                                     ),
                                     title=error_message,
                                     disabled=disabled,
@@ -77,7 +78,8 @@ class FileBrowserFile(dbc.ListGroupItem):
                                     [FontAwesomeIcon("cog"), "Status"],
                                     id=FileBrowserFile.status(
                                         aio_id=parent_id,
-                                        filename=str(file)
+                                        filename=str(file),
+                                        **kwargs
                                     ),
                                     title=error_message,
                                     disabled=disabled,
@@ -85,7 +87,7 @@ class FileBrowserFile(dbc.ListGroupItem):
                                 dbc.Button(
                                     [FontAwesomeIcon("pen-to-square"), "Edit"],
                                     id=FileBrowserFile.edit(
-                                        aio_id=parent_id, filename=str(file)
+                                        aio_id=parent_id, filename=str(file), **kwargs 
                                     ),
                                     title=error_message,
                                     disabled=disabled,
@@ -123,7 +125,9 @@ class FileBrowser(dbc.Row):
                         html.H3("Shortcuts"),
                         dbc.ListGroup(
                             [
-                                FileBrowserFile(id, Path(path), name=name)
+                                # We need shortcut to ensure this doesn't have a duplicate ID with 
+                                # a file in the right panel
+                                FileBrowserFile(id, Path(path), name=name, shortcut=True)
                                 for name, path in config.shortcuts.items()
                             ]
                         ),
