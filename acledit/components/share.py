@@ -80,8 +80,8 @@ class AclShareModal(html.Div):
                                     dbc.Checkbox(
                                         id=self._default(id),
                                         label=html.Div([
-                                            html.Strong("Default."),
-                                            " Also share future contents of this directory.",
+                                            html.Strong("Inherit."),
+                                            " Future files will inherit these sharing settings.",
                                             config.hints.default
                                         ]),
                                         value=False,
