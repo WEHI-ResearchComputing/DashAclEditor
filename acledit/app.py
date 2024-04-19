@@ -5,7 +5,6 @@ import dash_bootstrap_components as dbc
 from acledit.components.browser import FileBrowser, FileBrowserFile
 from acledit.components.editor import AclEditorModal
 from acledit.components.share import AclShareModal
-from acledit.components.status import AclStatusModal
 
 app = Dash(
     __name__,
@@ -34,21 +33,9 @@ app.layout = dbc.Container(
         dcc.Store(id="current_acl", data=None),
         AclEditorModal(id="acl_editor"),
         AclShareModal(id="acl_share"),
-        AclStatusModal(id="acl_status"),
     ],
     className="justify-content-center",
 )
-
-@app.callback(
-    Output(AclStatusModal.current_file("acl_status"), "data"),
-    Input(FileBrowserFile.status(aio_id="file-browser", filename = ALL, shortcut= ALL), "n_clicks"),
-    prevent_initial_call=True
-)
-def file_status(n_clicks: list[int]):
-    if ctx.triggered_id is None or not real_event():
-        return None
-
-    return ctx.triggered_id["filename"]
 
 # The edit button should trigger the ACL editor modal
 @app.callback(

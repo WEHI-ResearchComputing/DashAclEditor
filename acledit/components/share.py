@@ -18,18 +18,16 @@ class AclShareModal(html.Div):
     current_file = declare_child("current_file")
 
     # Private
-    _acl = declare_child("acl")
     _title = declare_child("title")
     _modal = declare_child("modal")
     _close = declare_child("close")
     _share = declare_child("share")
+    _status = declare_child("status")
     _username = declare_child("username")
     _alerts = declare_child("alerts")
     _default = declare_child("default")
     _recursive = declare_child("recursive")
     _editable = declare_child("editable")
-    _collapse = declare_child("collapse")
-    _collapse_btn = declare_child("collapse_btn")
 
     def __init__(self, id: str, **kwargs):
         super().__init__(
@@ -42,99 +40,79 @@ class AclShareModal(html.Div):
                             )
                         ),
                         dbc.ModalBody(
-                            dbc.Container(
-                                [
-                                    dbc.Row(
-                                        dbc.Col(
-                                            dbc.Form(
-                                                [
-                                                    dbc.InputGroup(
-                                                        [
-                                                            dbc.InputGroupText(
-                                                                "Username"
+                            dbc.Stack(
+                                gap=1,
+                                children=[
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("Username"),
+                                            dbc.Input(id=AclShareModal._username(id)),
+                                        ]
+                                    ),
+                                    dbc.Checkbox(
+                                        id=self._editable(id),
+                                        label=html.Div(
+                                            [
+                                                html.Strong("Grant Edit."),
+                                                " Allow the user to edit this file or directory.",
+                                                config.hints.edit,
+                                            ]
+                                        ),
+                                        value=False,
+                                    ),
+                                    dbc.Accordion(
+                                        flush=True,
+                                        start_collapsed=True,
+                                        children=dbc.AccordionItem(
+                                            title="Show Advanced Settings",
+                                            children=[
+                                                dbc.Stack(
+                                                    children=[
+                                                        dbc.Checkbox(
+                                                            id=self._recursive(id),
+                                                            label=html.Div(
+                                                                [
+                                                                    html.Strong(
+                                                                        "Recursive."
+                                                                    ),
+                                                                    " Also share all subdirectories.",
+                                                                    config.hints.recursive,
+                                                                ]
                                                             ),
-                                                            dbc.Input(
-                                                                id=AclShareModal._username(
-                                                                    id
-                                                                )
+                                                            value=False,
+                                                        ),
+                                                        dbc.Checkbox(
+                                                            id=self._default(id),
+                                                            label=html.Div(
+                                                                [
+                                                                    html.Strong(
+                                                                        "Inherit."
+                                                                    ),
+                                                                    " Future files will inherit these sharing settings.",
+                                                                    config.hints.default,
+                                                                ]
                                                             ),
-                                                        ]
-                                                    ),
-                                                ]
-                                            )
-                                        ),
-                                        class_name="gy-5",
-                                    ),
-                                    dbc.Row(
-                                        dbc.Col(
-                                            dbc.Checkbox(
-                                                id=self._editable(id),
-                                                label=html.Div(
-                                                    [
-                                                        html.Strong("Grant Edit."),
-                                                        " Allow the user to edit this file or directory.",
-                                                        config.hints.edit,
-                                                    ]
-                                                ),
-                                                value=False,
-                                            ),
-                                            md="12",
+                                                            value=False,
+                                                        ),
+                                                    ],
+                                                )
+                                            ],
                                         ),
                                     ),
-                                    dbc.Row(
-                                        dbc.Col(
-                                            dbc.Button(
-                                                "Advanced Settings",
-                                                className="mb-3",
-                                                color="primary",
-                                                n_clicks=0,
-                                                id=self._collapse_btn(id)
-                                            )
-                                        )
+                                    dbc.Alert(
+                                        "Disclaimer: even if you share a specific file with another user, they will be able to access all files within the VAST area if they know their exact filenames. The user will not be able to list files in VAST spaces they have not been explicitly given access to, however.",
+                                        color="warning",
                                     ),
-                                    dbc.Collapse([
-                                        dbc.Row(
-                                            dbc.Col(
-                                                dbc.Checkbox(
-                                                    id=self._recursive(id),
-                                                    label=html.Div(
-                                                        [
-                                                            html.Strong("Recursive."),
-                                                            " Also share all subdirectories.",
-                                                            config.hints.recursive,
-                                                        ]
-                                                    ),
-                                                    value=False,
-                                                ),
-                                            ),
-                                        ),
-                                        dbc.Row(
-                                            dbc.Col(
-                                                dbc.Checkbox(
-                                                    id=self._default(id),
-                                                    label=html.Div(
-                                                        [
-                                                            html.Strong("Inherit."),
-                                                            " Future files will inherit these sharing settings.",
-                                                            config.hints.default,
-                                                        ]
-                                                    ),
-                                                    value=False,
-                                                ),
-                                                md="12",
-                                            ),
-                                        ),
-                                    ], id=AclShareModal._collapse(id), is_open = False),
-                                    dbc.Row(
-                                        dbc.Col(id=AclShareModal._alerts(id)),
-                                        class_name="gy-5",
-                                    ),
+                                    html.Div(id=AclShareModal._alerts(id)),
                                 ],
-                                class_name="gy-5",
-                            ),
+                            )
                         ),
                         dbc.ModalFooter(
                             [
+                                dbc.Button(
+                                    "Status",
+                                    id=AclShareModal._status(id),
+                                ),
                                 dbc.Button(
                                     "Share",
                                     id=AclShareModal._share(id),
@@ -151,7 +129,6 @@ class AclShareModal(html.Div):
                     id=AclShareModal._modal(id),
                 ),
                 dcc.Store(id=AclShareModal.current_file(id)),
-                dcc.Store(id=AclShareModal._acl(id)),
             ]
         )
 
@@ -179,14 +156,6 @@ def open_modal(filename: str | None) -> tuple[Literal[True], str, list]:
 def close_modal(_n_clicks: int) -> bool:
     return False
 
-@callback(
-    Output(AclShareModal._collapse(MATCH), "is_open"),
-    Input(AclShareModal._collapse_btn(MATCH), "n_clicks"),
-    State(AclShareModal._collapse(MATCH), "is_open"),
-    prevent_initial_call=True
-)
-def toggle_advanced(_n_clicks: int, open: bool) -> bool:
-    return not open
 
 @callback(
     Output(AclShareModal._alerts(MATCH), "children", allow_duplicate=True),
@@ -279,3 +248,46 @@ def execute_share(
         ]
     except Exception as e:
         return [dbc.Alert(str(e), dismissable=True, color="danger")]
+
+
+@callback(
+    Output(AclShareModal._alerts(MATCH), "children"),
+    Input(AclShareModal._status(MATCH), "n_clicks"),
+    State(AclShareModal._username(MATCH), "value"),
+    State(AclShareModal.current_file(MATCH), "data"),
+)
+def on_calculate(_n_clicks: int, user: str, path: dict) -> list[dbc.Alert]:
+    if not Path(path).exists():
+        return [
+            dbc.Alert(
+                f'The path "{path}" does not exist!',
+                dismissable=False,
+                color="danger",
+            )
+        ]
+    try:
+        pwd.getpwnam(user)
+    except KeyError:
+        return [
+            dbc.Alert(
+                f'The user "{user}" does not exist!',
+                dismissable=False,
+                color="danger",
+            )
+        ]
+    if AclSet.from_file(path).can_access(user):
+        return [
+            dbc.Alert(
+                f"{user} CAN access {path}",
+                dismissable=False,
+                color="success",
+            )
+        ]
+
+    return [
+        dbc.Alert(
+            f"{user} CANNOT access {path}",
+            dismissable=False,
+            color="danger",
+        )
+    ]

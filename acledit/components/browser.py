@@ -75,16 +75,6 @@ class FileBrowserFile(dbc.ListGroupItem):
                                     disabled=disabled,
                                 ),
                                 dbc.Button(
-                                    [FontAwesomeIcon("cog"), "Status"],
-                                    id=FileBrowserFile.status(
-                                        aio_id=parent_id,
-                                        filename=str(file),
-                                        **kwargs
-                                    ),
-                                    title=error_message,
-                                    disabled=disabled,
-                                ),
-                                dbc.Button(
                                     [FontAwesomeIcon("pen-to-square"), "Edit"],
                                     id=FileBrowserFile.edit(
                                         aio_id=parent_id, filename=str(file), **kwargs 
