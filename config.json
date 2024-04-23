@@ -10,5 +10,5 @@
         "default": ""
     },
     "fs_mounts": ["/vast"],
-    "editor": false
+    "editor": true
 }

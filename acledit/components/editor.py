@@ -21,6 +21,7 @@ class AclEditorModal(html.Div):
     _save = declare_child("save")
     _delete_entry = declare_child("save")
     _add_entry = declare_child("save")
+    _checkbox = declare_child("save", type=ALL, qualifier=ALL, default=ALL, perm=ALL)
 
     def __init__(self, id: str, **kwargs):
         super().__init__(
@@ -101,6 +102,9 @@ class AclEditorModal(html.Div):
     prevent_initial_call=True,
 )
 def update_acl_from_path(path: str | None):
+    """
+    Update the internal ACL state from the file specified
+    """
     if path is None:
         raise PreventUpdate()
     return AclSet.from_file(path).model_dump()
@@ -114,24 +118,27 @@ def update_acl_from_path(path: str | None):
     prevent_initial_call=True,
 )
 def open_modal(acl_data: dict) -> tuple[Literal[True], str, list[html.Tr], list[html.Tr]]:
+    """
+    When the internal ACL state changes, update the modal content
+    """
     id = ctx.triggered_id["aio_id"]
     acls = AclSet.model_validate(acl_data)
 
     return True, acls.file_path, [html.Tr([
         html.Td(entry.tag_type),
         html.Td(entry.qualifier),
-        html.Td(dbc.Checkbox(value=entry.read, disabled=True)),
-        html.Td(dbc.Checkbox(value=entry.write, disabled=True)),
-        html.Td(dbc.Checkbox(value=entry.execute, disabled=True)),
+        html.Td(dbc.Checkbox(value=entry.read, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=False, perm="read"))),
+        html.Td(dbc.Checkbox(value=entry.write, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=False, perm="write"))),
+        html.Td(dbc.Checkbox(value=entry.execute, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=False, perm="execute"))),
         html.Td(dbc.Button(FontAwesomeIcon("trash"), color="danger", id=AclEditorModal._delete_entry(id, index=i, default=False))),
-    ]) for i, entry in enumerate(acls.acls)], [html.Tr([
+    ]) for i, entry in enumerate(acls.qualified_acls(default=False))], [html.Tr([
         html.Td(entry.tag_type),
         html.Td(entry.qualifier),
-        html.Td(dbc.Checkbox(value=entry.read, disabled=True)),
-        html.Td(dbc.Checkbox(value=entry.write, disabled=True)),
-        html.Td(dbc.Checkbox(value=entry.execute, disabled=True)),
+        html.Td(dbc.Checkbox(value=entry.read, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=True, perm="read"))),
+        html.Td(dbc.Checkbox(value=entry.write, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=True, perm="write"))),
+        html.Td(dbc.Checkbox(value=entry.execute, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=True, perm="execute"))),
         html.Td(dbc.Button(FontAwesomeIcon("trash"), color="danger", id=AclEditorModal._delete_entry(id, index=i, default=True))),
-    ]) for i, entry in enumerate(acls.default_acls)]
+    ]) for i, entry in enumerate(acls.qualified_acls(default=True))]
 
 
 @callback(
@@ -161,3 +168,21 @@ def delete_entry(_n_clicks: int, acl_data: dict):
 def save_acl(_n_clicks: int, acl_data: dict):
     AclSet.model_validate(acl_data).apply()
     return False
+
+@callback(
+    Output(AclEditorModal._acl(MATCH), "data", allow_duplicate=True),
+    Input(AclEditorModal._checkbox(MATCH), "value"),
+    State(AclEditorModal._acl(MATCH), "data"),
+    prevent_initial_call=True
+)
+def checkbox_changed(_: bool, acl_raw: dict):
+    acl = AclSet.model_validate(acl_raw)
+    for input, trigger in zip(ctx.inputs_list[0], ctx.args_grouping[0]):
+        if not trigger["triggered"]:
+            continue
+        id = input["id"]
+        entry = acl.find_entry(default=id["default"], qualifier=id["qualifier"], type=id["type"])
+        if entry is None:
+            raise Exception("")
+        setattr(entry, id["perm"], trigger["value"])
+    return acl.model_dump()

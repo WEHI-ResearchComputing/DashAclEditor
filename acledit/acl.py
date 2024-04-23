@@ -95,6 +95,32 @@ class AclSet(BaseModel):
     # Files don't have default ACLs
     default_acls: list[AclEntry] | None
 
+    @property
+    def iter_default(self) -> Iterable[AclEntry]:
+        """
+        Iterate the default ACLs. If the current ACL is for a file, this never yields.
+        """
+        if self.default_acls is not None:
+            yield from self.default_acls
+
+    def find_entry(self, default: bool, type: str, qualifier: str | None) -> AclEntry | None:
+        """
+        Returns an existing entry with the given attributes
+        """
+        try:
+            collection = self.iter_default if default else self.acls
+            return next(entry for entry in collection if entry.tag_type == type and (qualifier is None or qualifier == entry.qualifier))
+        except StopIteration:
+            return None
+
+    def qualified_acls(self, default: bool = False) -> Iterable[AclEntry]:
+        """
+        The ACLs that have a qualifier, namely the user and group ACLs 
+        """
+        for acl in (self.iter_default if default else self.acls):
+            if acl.tag_type in {"user", "group"}:
+                yield acl
+
     @staticmethod
     def from_file(path: str) -> "AclSet":
         if Path(path).is_dir():
