@@ -2,7 +2,7 @@ from typing import Literal
 from dash import Dash, html, Input, Output, ALL, dcc, ctx, State, MATCH, callback
 from dash.development.base_component import Component
 import dash_bootstrap_components as dbc
-from acledit.components.utils import declare_child
+from acledit.components.utils import declare_child, real_event
 from dash.exceptions import PreventUpdate
 from acledit.acl import AclSet, grant_user, get_or_create_entry
 from acledit.config import config
@@ -28,6 +28,7 @@ class AclShareModal(html.Div):
     _default = declare_child("default")
     _recursive = declare_child("recursive")
     _editable = declare_child("editable")
+    _advanced = declare_child("advanced")
 
     def __init__(self, id: str, **kwargs):
         super().__init__(
@@ -61,6 +62,7 @@ class AclShareModal(html.Div):
                                         value=False,
                                     ),
                                     dbc.Accordion(
+                                        id=self._advanced(id),
                                         flush=True,
                                         start_collapsed=True,
                                         children=dbc.AccordionItem(
@@ -75,7 +77,7 @@ class AclShareModal(html.Div):
                                                                     html.Strong(
                                                                         "Recursive."
                                                                     ),
-                                                                    " Also share all subdirectories.",
+                                                                    " Also share all files and directories inside this directory.",
                                                                     config.hints.recursive,
                                                                 ]
                                                             ),
@@ -88,7 +90,7 @@ class AclShareModal(html.Div):
                                                                     html.Strong(
                                                                         "Inherit."
                                                                     ),
-                                                                    " Future files will inherit these sharing settings.",
+                                                                    " Future files in this directory will inherit these sharing settings.",
                                                                     config.hints.default,
                                                                 ]
                                                             ),
@@ -100,7 +102,7 @@ class AclShareModal(html.Div):
                                         ),
                                     ),
                                     dbc.Alert(
-                                        "Disclaimer: even if you share a specific file with another user, they will be able to access all files within the VAST area if they know their exact filenames. The user will not be able to list files in VAST spaces they have not been explicitly given access to, however.",
+                                        "Disclaimer: even if you share a specific file with another user, they may be able to access all files within the VAST area if they know their exact filenames. The user will not be able to list files in VAST spaces they have not been explicitly given access to, however.",
                                         color="warning",
                                     ),
                                     html.Div(id=AclShareModal._alerts(id)),
@@ -137,15 +139,34 @@ class AclShareModal(html.Div):
     Output(AclShareModal._modal(MATCH), "is_open"),
     Output(AclShareModal._title(MATCH), "children"),
     Output(AclShareModal._alerts(MATCH), "children", allow_duplicate=True),
+    Output(AclShareModal._editable(MATCH), "label", allow_duplicate=True),
+    Output(AclShareModal._advanced(MATCH), "style", allow_duplicate=True),
     Input(AclShareModal.current_file(MATCH), "data"),
     prevent_initial_call=True,
 )
-def open_modal(filename: str | None) -> tuple[Literal[True], str, list]:
+def open_modal(filename: str | None) -> tuple[Literal[True], str, list, list, dict]:
     if filename is None:
         raise PreventUpdate()
 
     # Open the modal, set its title, and clear alerts
-    return True, filename, []
+    modal_open = True
+    title = Path(filename).name
+    alerts = []
+    
+    if Path(filename).is_dir():
+        style = {"visible": True}
+        editable_description = [
+            html.Strong("Grant Edit."),
+            " Allow the user to create and delete files in this directory"
+        ]
+    else:
+        style = {"display": "none"}
+        editable_description = [
+            html.Strong("Grant Edit."),
+            " Allow the user to edit or delete this file"
+        ]
+
+    return modal_open, title, alerts, editable_description, style
 
 
 @callback(
@@ -257,6 +278,8 @@ def execute_share(
     State(AclShareModal.current_file(MATCH), "data"),
 )
 def on_calculate(_n_clicks: int, user: str, path: dict) -> list[dbc.Alert]:
+    if not real_event():
+        raise PreventUpdate()
     if not Path(path).exists():
         return [
             dbc.Alert(

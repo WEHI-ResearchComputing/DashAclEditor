@@ -44,6 +44,27 @@ class FileBrowserFile(dbc.ListGroupItem):
 
         if name is None:
             name = file.name
+
+        buttons = [
+            dbc.Button(
+                [FontAwesomeIcon("share"), "Share"],
+                id=FileBrowserFile.share(
+                    aio_id=parent_id, filename=str(file), **kwargs
+                ),
+                title=error_message,
+                disabled=disabled,
+            ),
+        ]
+
+        if config.editor:
+            buttons.append(dbc.Button(
+                [FontAwesomeIcon("pen-to-square"), "Edit"],
+                id=FileBrowserFile.edit(
+                    aio_id=parent_id, filename=str(file), **kwargs 
+                ),
+                title=error_message,
+                disabled=disabled,
+            ))
         super().__init__(
             dbc.Row(
                 [
@@ -64,26 +85,7 @@ class FileBrowserFile(dbc.ListGroupItem):
                         )
                     ),
                     dbc.Col(
-                        dbc.ButtonGroup(
-                            [
-                                dbc.Button(
-                                    [FontAwesomeIcon("share"), "Share"],
-                                    id=FileBrowserFile.share(
-                                        aio_id=parent_id, filename=str(file), **kwargs
-                                    ),
-                                    title=error_message,
-                                    disabled=disabled,
-                                ),
-                                dbc.Button(
-                                    [FontAwesomeIcon("pen-to-square"), "Edit"],
-                                    id=FileBrowserFile.edit(
-                                        aio_id=parent_id, filename=str(file), **kwargs 
-                                    ),
-                                    title=error_message,
-                                    disabled=disabled,
-                                )
-                            ]
-                        ),
+                        dbc.ButtonGroup(buttons),
                         className="justify-content-end d-flex",
                         md=6,
                     ),
@@ -162,13 +164,13 @@ def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
     if dir is None:
         dir = str(Path.home())
     for file in sorted(Path(dir).iterdir(), key=lambda path: path.name):
-        new_children.append(FileBrowserFile(parent_id, file=file))
+        new_children.append(FileBrowserFile(parent_id, file=file, shortcut=False))
     return new_children
 
 
 @callback(
     Output(FileBrowser.current_path(MATCH), "data"),
-    Input(FileBrowser._dir_browse(MATCH, filename=ALL), "n_clicks"),
+    Input(FileBrowser._dir_browse(MATCH, filename=ALL, shortcut=ALL), "n_clicks"),
     State(FileBrowser.current_path(MATCH), "data"),
 )
 def browse_dir(_n_clicks: int, current_path: str) -> str:

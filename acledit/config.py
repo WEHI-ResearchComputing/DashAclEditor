@@ -64,6 +64,13 @@ class Config(BaseModel):
         ),
     ] = {}
 
+    editor: Annotated[
+        bool,
+        Field(
+            description='If True, the "Edit" button will be available in the file browser.'
+        ),
+    ] = {}
+
     hints: Annotated[Hints, Field(description="Hints used to add site-specific text to sharing options")] = Hints()
 
     fs_mounts: Annotated[list[Path], Field(description="A list of paths for which ACLs will be considered to be enabled and supported")] = [Path("/")]

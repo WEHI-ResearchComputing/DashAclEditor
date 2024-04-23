@@ -9,5 +9,6 @@
         "recursive": " Warning: this setting edits the ACL of multiple files meaning that mistakes can be difficult to fix.",
         "default": ""
     },
-    "fs_mounts": ["/vast"]
+    "fs_mounts": ["/vast"],
+    "editor": false
 }
