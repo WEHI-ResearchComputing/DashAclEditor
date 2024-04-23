@@ -20,9 +20,14 @@ from dash.exceptions import PreventUpdate
 import pwd
 
 class FileBrowserFile(dbc.ListGroupItem):
+    """
+    A row that represents a single file
+    """
+    # Public fields
+    #: Listen to change in nclicks to determine when the user clicks the share button
     share = declare_child("share", filename=ALL)
+    #: Listen to change in nclicks to determine when the user clicks the edit button
     edit = declare_child("edit", filename=ALL)
-    status = declare_child("status", filename=ALL)
 
     def __init__(self, parent_id: str, file: Path, name: str | None = None, **kwargs):
         """
@@ -96,7 +101,11 @@ class FileBrowserFile(dbc.ListGroupItem):
 
 
 class FileBrowser(dbc.Row):
+    """
+    Component for the entire file browser
+    """
     # Public
+    #: The data property can be set to modify the working directory
     current_path = declare_child("current_path")
 
     # Private
@@ -151,6 +160,7 @@ class FileBrowser(dbc.Row):
     Input(FileBrowser.current_path(MATCH), "data"),
 )
 def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
+    # When the browser path changes, create the per-file components
     if not real_event():
         return []
     parent_id = ctx.triggered_id["aio_id"]
@@ -174,6 +184,8 @@ def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
     State(FileBrowser.current_path(MATCH), "data"),
 )
 def browse_dir(_n_clicks: int, current_path: str) -> str:
+    # When the user browses to a new directory by clicking on a directory name,
+    # Set the current_path internal state
     if real_event(0):
         new_path: str = ctx.triggered_id["filename"]
         if not Path(new_path).is_dir():
@@ -194,6 +206,8 @@ def browse_dir(_n_clicks: int, current_path: str) -> str:
     prevent_initial_call=True,
 )
 def dir_go(_n_clicks: int, path: str) -> str:
+    # When the user types in a specific file path and clicks "Go",
+    # modify the internal path state
     p = Path(path).expanduser().resolve()
     if not p.exists():
         raise PreventUpdate()
@@ -207,6 +221,7 @@ def dir_go(_n_clicks: int, path: str) -> str:
     prevent_initial_call=True,
 )
 def up_dir(n_clicks: int | None, current_dir: str) -> str:
+    # When the user goes up a directory
     if n_clicks is not None and real_event():
         return str(Path(current_dir).parent)
     else:
@@ -220,4 +235,5 @@ def up_dir(n_clicks: int | None, current_dir: str) -> str:
     prevent_initial_call=True,
 )
 def update_title(current_dir: str) -> tuple[str, str]:
+    # When the current path changes, update the page header
     return current_dir, current_dir

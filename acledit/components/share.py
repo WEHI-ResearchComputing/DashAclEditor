@@ -12,8 +12,10 @@ import posix1e as acl
 import os
 import pwd
 
-
 class AclShareModal(html.Div):
+    """
+    The high-level share and status modal, that pops up when you click "Share"
+    """
     # Public
     current_file = declare_child("current_file")
 
@@ -145,10 +147,13 @@ class AclShareModal(html.Div):
     prevent_initial_call=True,
 )
 def open_modal(filename: str | None) -> tuple[Literal[True], str, list, list, dict]:
+    """
+    Open the modal, set its title, and clear alerts
+    At this point we modify parts of the modal depending on if we're sharing a file or directory
+    """
     if filename is None:
         raise PreventUpdate()
 
-    # Open the modal, set its title, and clear alerts
     modal_open = True
     title = Path(filename).name
     alerts = []
@@ -177,7 +182,6 @@ def open_modal(filename: str | None) -> tuple[Literal[True], str, list, list, di
 def close_modal(_n_clicks: int) -> bool:
     return False
 
-
 @callback(
     Output(AclShareModal._alerts(MATCH), "children", allow_duplicate=True),
     Input(AclShareModal._share(MATCH), "n_clicks"),
@@ -196,6 +200,9 @@ def execute_share(
     recursive: bool,
     default: bool,
 ) -> list:
+    """
+    Perform the share, and generate any status alerts
+    """
     try:
         current_path = Path(current_file)
         current_user = getuser()
@@ -278,6 +285,11 @@ def execute_share(
     State(AclShareModal.current_file(MATCH), "data"),
 )
 def on_calculate(_n_clicks: int, user: str, path: dict) -> list[dbc.Alert]:
+    """
+    Triggers when the user clicks "status".
+    Generates various status alerts relating to the validity of the user,
+    the path, and the user's access to the path
+    """
     if not real_event():
         raise PreventUpdate()
     if not Path(path).exists():
