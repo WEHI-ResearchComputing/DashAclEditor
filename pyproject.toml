@@ -7,14 +7,13 @@ name = "acledit"
 authors = [
     {name = "Michael Milton", email = "milton.m@wehi.edu.au"},
 ]
-description = "Dash GUI for editing Posix file acess control lists (ACLs)"
+description = "Dash GUI for editing Posix file access control lists (ACLs)"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "dash ~= 2.15.0",
     "dash-bootstrap-components ~= 1.5.0",
     "pylibacl ~= 0.7.0",
-    "ldap3 ~= 2.9.1",
     "pydantic ~= 2.6.1"
 ]
 dynamic = ["version"]
