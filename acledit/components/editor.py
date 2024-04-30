@@ -131,14 +131,14 @@ def open_modal(acl_data: dict) -> tuple[Literal[True], str, list[html.Tr], list[
         html.Td(dbc.Checkbox(value=entry.write, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=False, perm="write"))),
         html.Td(dbc.Checkbox(value=entry.execute, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=False, perm="execute"))),
         html.Td(dbc.Button(FontAwesomeIcon("trash"), color="danger", id=AclEditorModal._delete_entry(id, index=i, default=False))),
-    ]) for i, entry in enumerate(acls.qualified_acls(default=False))], [html.Tr([
+    ]) for i, entry in enumerate(acls.acls) if entry.tag_type in {"user", "group"}], [html.Tr([
         html.Td(entry.tag_type),
         html.Td(entry.qualifier),
         html.Td(dbc.Checkbox(value=entry.read, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=True, perm="read"))),
         html.Td(dbc.Checkbox(value=entry.write, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=True, perm="write"))),
         html.Td(dbc.Checkbox(value=entry.execute, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=True, perm="execute"))),
         html.Td(dbc.Button(FontAwesomeIcon("trash"), color="danger", id=AclEditorModal._delete_entry(id, index=i, default=True))),
-    ]) for i, entry in enumerate(acls.qualified_acls(default=True))]
+    ]) for i, entry in enumerate(acls.iter_default) if entry.tag_type in {"user", "group"}]
 
 
 @callback(
