@@ -1,59 +1,62 @@
 from dash import Dash, html, Input, Output, ALL, dcc, ctx
+from acledit.components.utils import real_event
 from acledit.config import config
 import dash_bootstrap_components as dbc
-from pathlib import Path
+from acledit.components.browser import FileBrowser, FileBrowserFile
+from acledit.components.editor import AclEditorModal
+from acledit.components.share import AclShareModal
 
 app = Dash(
     __name__,
-    requests_pathname_prefix= config.prefix,
-    external_stylesheets=[dbc.themes.BOOTSTRAP]
+    requests_pathname_prefix=config.url_prefix,
+    external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME],
 )
 
-app.layout = html.Div([
-    html.H1(children='Access Control', style={'textAlign':'center'}),
-    dbc.ListGroup([], id="file-list"),
-    dcc.Store(id="current_dir")
-])
-
-@app.callback(
-    Output("current_dir", "data"),
-    Input({"type": "file", "filename": ALL}, "n_clicks"),
+app.layout = dbc.Container(
+    [
+        dbc.Row(
+            [
+                dbc.Col(
+                    sm=12,
+                    children=[
+                        html.H1(
+                            children="Access Control", style={"textAlign": "center"}
+                        ),
+                        FileBrowser(id="file-browser")
+                    ],
+                )
+            ],
+            className="justify-content-center",
+        ),
+        # The path of the file we're currently editing ACLs for
+        dcc.Store(id="edit_file", data=None),
+        dcc.Store(id="current_acl", data=None),
+        AclEditorModal(id="acl_editor"),
+        AclShareModal(id="acl_share"),
+    ],
+    className="justify-content-center",
 )
-def browse_dir(_n_clicks: int) -> str:
-    if ctx.triggered_id is None:
-        # This happens when the app first initializes
-        return str(Path.home())
-    else:
-        new_path: str = ctx.triggered_id["filename"]
-        if Path(new_path).is_dir():
-            return new_path
-        else:
-            raise Exception("Not a directory")
 
+# The edit button should trigger the ACL editor modal
 @app.callback(
-    Output("current_dir", "data", allow_duplicate=True),
-    Input({"type": "dir-up"}, "n_clicks"),
-    Input("current_dir", "data"),
+    Output(AclEditorModal.current_file("acl_editor"), "data"),
+    Input(FileBrowserFile.edit(aio_id="file-browser", filename = ALL, shortcut= ALL), "n_clicks"),
     prevent_initial_call=True
 )
-def up_dir(n_clicks: int | None, current_dir: str) -> str:
-    if n_clicks is not None:
-        return str(Path(current_dir).parent)
-    else:
-        return current_dir
+def edit_file(n_clicks: list[int]):
+    if ctx.triggered_id is None or not real_event():
+        return None
 
+    return ctx.triggered_id["filename"]
+
+# The share button should trigger the ACL share modal
 @app.callback(
-    Output("file-list", "children"),
-    Input("current_dir", "data"),
+    Output(AclShareModal.current_file("acl_share"), "data"),
+    Input(FileBrowserFile.share(aio_id="file-browser", filename = ALL, shortcut= ALL), "n_clicks"),
+    prevent_initial_call=True
 )
-def populate_filelist(dir: str | None) -> list[dbc.ListGroupItem]:
-    new_children = [
-        dbc.ListGroupItem(children="Back", id={"type": "dir-up"}, href="#")
-    ]
-    if dir is None:
-        dir = str(Path.home())
-    for file in sorted(Path(dir).iterdir(), key=lambda path: path.name):
-        new_children.append(
-            dbc.ListGroupItem(children=file.name, id={"filename": str(file), "type": "file"}, href="#")
-        )
-    return new_children
+def share_file(n_clicks: list[int]):
+    if ctx.triggered_id is None or not real_event():
+        return None
+
+    return ctx.triggered_id["filename"]
