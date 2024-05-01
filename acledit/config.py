@@ -5,12 +5,17 @@ from typing import Annotated
 from pwd import getpwuid
 from os import getuid
 
-
 def interpolate_start_dir(v: str) -> Path:
+    """
+    Interpolates the {user} and {home} placeholders in a path string and converts the result to a path
+    """
     pwd_struct = getpwuid(getuid())
     return Path(v.format(user=pwd_struct.pw_name, home=pwd_struct.pw_dir))
 
 class Hints(BaseModel):
+    """
+    Model for site-specific text that should be added to certain share options
+    """
     
     recursive: Annotated[
         str,
@@ -34,6 +39,9 @@ class Hints(BaseModel):
     ] = ""
 
 class Config(BaseModel):
+    """
+    Model defining the top-level configuration options for the app
+    """
 
     python: Annotated[
         Path,

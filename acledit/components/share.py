@@ -4,7 +4,7 @@ from dash.development.base_component import Component
 import dash_bootstrap_components as dbc
 from acledit.components.utils import declare_child, real_event
 from dash.exceptions import PreventUpdate
-from acledit.acl import AclSet, grant_user, get_or_create_entry
+from acledit.acl import AclSet, grant_user, get_or_create_entry, can_read_recursive, execute_share
 from acledit.config import config
 from pathlib import Path
 from getpass import getuser
@@ -192,7 +192,7 @@ def close_modal(_n_clicks: int) -> bool:
     State(AclShareModal._default(MATCH), "value"),
     prevent_initial_call=True,
 )
-def execute_share(
+def on_share(
     _n_clicks: int,
     current_file: str,
     share_user: str,
@@ -204,79 +204,19 @@ def execute_share(
     Perform the share, and generate any status alerts
     """
     try:
-        current_path = Path(current_file)
-        current_user = getuser()
-        current_uid = os.getuid()
-
-        try:
-            recipient_id = pwd.getpwnam(share_user).pw_uid
-        except KeyError as e:
-            return [
-                dbc.Alert(
-                    f"Username {share_user} is not a valid Milton user!",
-                    dismissable=True,
-                    color="danger",
-                )
-            ]
-
-        if current_path.owner() != getuser():
-            return [
-                dbc.Alert(
-                    f"You do not own this file or directory. The current owner is {current_path.owner()}. Only the owner can share it.",
-                    dismissable=True,
-                    color="danger",
-                )
-            ]
-
-        acls = AclSet.from_file(current_file)
-        for permission in acls.acls:
-            if permission.tag_type == "user" and permission.qualifier == share_user:
-                return [
-                    dbc.Alert(
-                        f"There is already some access control configured for {share_user}. Consider opening the Editor.",
-                        dismissable=True,
-                        color="danger",
-                    )
-                ]
-
-        # Grant X access to each parent so that the directory can be listed
-        # We iterate in reverse so that we can fail early
-        for parent in reversed(current_path.parents):
-            if parent.owner() == current_user:
-                entry = get_or_create_entry(
-                    facl=acl.ACL(file=str(parent)),
-                    tag_type=acl.ACL_USER,
-                    qualifier=recipient_id,
-                )
-                entry.permset.execute = True
-            else:
-                parent_acl = AclSet.from_file(str(parent))
-                if not parent_acl.can_access(share_user):
-                    return [
-                        dbc.Alert(
-                            f"Share failed because the parent directory {parent} is not owned by you, and cannot be accessed by {share_user}. Please contact {parent.owner()} and request that they share this directory with {share_user}.",
-                            dismissable=True,
-                            color="danger",
-                        )
-                    ]
-
-        perms = [acl.ACL_EXECUTE, acl.ACL_READ]
-        if editable:
-            perms.append(acl.ACL_WRITE)
-        grant_user(
-            current_file,
-            recipient_id,
-            permissions=perms,
-            default=default,
-            recursive=recursive,
-        )
-
-        return [
-            dbc.Alert(f"File successfully shared!", dismissable=True, color="success")
-        ]
+        execute_share(current_file, share_user, editable, recursive, default)
     except Exception as e:
-        return [dbc.Alert(str(e), dismissable=True, color="danger")]
+        return [
+            dbc.Alert(
+                str(e),
+                dismissable=True,
+                color="danger",
+            )
+        ]
 
+    return [
+        dbc.Alert(f"File successfully shared!", dismissable=True, color="success")
+    ]
 
 @callback(
     Output(AclShareModal._alerts(MATCH), "children"),
@@ -284,7 +224,7 @@ def execute_share(
     State(AclShareModal._username(MATCH), "value"),
     State(AclShareModal.current_file(MATCH), "data"),
 )
-def on_calculate(_n_clicks: int, user: str, path: dict) -> list[dbc.Alert]:
+def on_calculate(_n_clicks: int, user: str, path: str) -> list[dbc.Alert]:
     """
     Triggers when the user clicks "status".
     Generates various status alerts relating to the validity of the user,
@@ -310,7 +250,8 @@ def on_calculate(_n_clicks: int, user: str, path: dict) -> list[dbc.Alert]:
                 color="danger",
             )
         ]
-    if AclSet.from_file(path).can_access(user):
+
+    if can_read_recursive(user, Path(path)):
         return [
             dbc.Alert(
                 f"{user} CAN access {path}",
