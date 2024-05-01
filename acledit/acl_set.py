@@ -159,15 +159,15 @@ class AclSet(BaseModel):
             user: a username
         """
         for entry in self.acls:
-            if entry.tag_type == "other" and entry[permission]:
+            if entry.tag_type == "other" and getattr(entry, permission):
                 return True
-            elif entry.tag_type == "user" and entry.qualifier == user and entry[permission]:
+            elif entry.tag_type == "user" and entry.qualifier == user and getattr(entry, permission):
                 return True
-            elif entry.tag_type == "group" and entry[permission] and entry.qualifier is not None:
+            elif entry.tag_type == "group" and getattr(entry, permission) and entry.qualifier is not None:
                 grp_members = grp.getgrnam(entry.qualifier).gr_mem
                 if user in grp_members:
                     return True
-            elif entry.tag_type == "owner" and Path(self.file_path).owner() == user and entry[permission]:
+            elif entry.tag_type == "owner" and Path(self.file_path).owner() == user and getattr(entry, permission):
                 return True
         return False
 

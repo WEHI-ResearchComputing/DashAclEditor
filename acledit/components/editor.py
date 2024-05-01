@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Literal
 from dash import Dash, html, Input, Output, ALL, dcc, ctx, State, MATCH, callback
 from dash.development.base_component import Component
@@ -29,7 +30,9 @@ class AclEditorModal(html.Div):
                 dbc.Modal(
                     [
                         dbc.ModalHeader(
-                            dbc.ModalTitle("Header", id=AclEditorModal._title(id))
+                            dbc.ModalTitle(
+                                ["Edit ", html.Code(id=AclEditorModal._title(id))]
+                            )
                         ),
                         dbc.ModalBody(
                             dbc.Form(
@@ -124,7 +127,7 @@ def open_modal(acl_data: dict) -> tuple[Literal[True], str, list[html.Tr], list[
     id = ctx.triggered_id["aio_id"]
     acls = AclSet.model_validate(acl_data)
 
-    return True, acls.file_path, [html.Tr([
+    return True, Path(acls.file_path).name, [html.Tr([
         html.Td(entry.tag_type),
         html.Td(entry.qualifier),
         html.Td(dbc.Checkbox(value=entry.read, id=AclEditorModal._checkbox(id, type=entry.tag_type, qualifier=entry.qualifier, default=False, perm="read"))),
