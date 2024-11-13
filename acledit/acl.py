@@ -113,7 +113,7 @@ def execute_share(
     default: bool,
 ) -> None:
     """
-    Shares a `path` with `share_user`, automatically adjusting parent directory ACLs where necessary
+    High level operation that shares `path` with `share_user`, automatically adjusting parent directory ACLs where necessary
     """
     current_path = Path(path)
     current_user = getuser()
