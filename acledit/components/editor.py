@@ -20,9 +20,10 @@ class AclEditorModal(html.Div):
     _default_acls_body = declare_child("default_acls_body")
     _modal = declare_child("modal")
     _save = declare_child("save")
-    _delete_entry = declare_child("save")
-    _add_entry = declare_child("save")
-    _checkbox = declare_child("save", type=ALL, qualifier=ALL, default=ALL, perm=ALL)
+    _close = declare_child("close")
+    _delete_entry = declare_child("delete_entry")
+    _add_entry = declare_child("add_entry")
+    _checkbox = declare_child("_heckbox", type=ALL, qualifier=ALL, default=ALL, perm=ALL)
 
     def __init__(self, id: str, **kwargs):
         super().__init__(
@@ -87,6 +88,7 @@ class AclEditorModal(html.Div):
                                 "Close",
                                 color="secondary",
                                 n_clicks=0,
+                                id=AclEditorModal._close(id)
                             )
                         ]),
                     ],
@@ -111,6 +113,14 @@ def update_acl_from_path(path: str | None):
     if path is None:
         raise PreventUpdate()
     return AclSet.from_file(path).model_dump()
+
+@callback(
+    Output(AclEditorModal._modal(MATCH), "is_open", allow_duplicate=True),
+    Input(AclEditorModal._close(MATCH), "n_clicks"),
+    prevent_initial_call=True,
+)
+def close_modal(_clicks: int) -> bool:
+    return False
 
 @callback(
     Output(AclEditorModal._modal(MATCH), "is_open"),
