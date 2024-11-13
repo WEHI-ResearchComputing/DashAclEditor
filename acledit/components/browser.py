@@ -64,6 +64,7 @@ class FileBrowserFile(dbc.ListGroupItem):
         if config.editor:
             buttons.append(dbc.Button(
                 [FontAwesomeIcon("pen-to-square"), "Edit"],
+                color="light",
                 id=FileBrowserFile.edit(
                     aio_id=parent_id, filename=str(file), **kwargs 
                 ),
