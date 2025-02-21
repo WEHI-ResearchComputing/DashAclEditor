@@ -72,10 +72,24 @@ def grant_user(file_path: str, user_id: int, permissions: list[ACL_PERMISSION] =
         for child in path.iterdir():
             grant_user(str(child), user_id, permissions=permissions, default=default, recursive=recursive)
 
+def ensure_mask(facl: acl.ACL):
+    """
+    Adds a rwx mask to the ACL if it doesn't already exist
+    """
+    for entry in facl:
+        if entry.tag_type == acl.ACL_MASK:
+            return
+    mask = acl.Entry(facl)
+    mask.tag_type = acl.ACL_MASK
+    mask.permset.add(acl.ACL_READ)
+    mask.permset.add(acl.ACL_WRITE)
+    mask.permset.add(acl.ACL_EXECUTE)
+
 def grant_user_entry(facl: acl.ACL, user_id: int, permissions: list[ACL_PERMISSION] = []):
     """
     Grant a user some permissions onto an existing ACL
     """
+    ensure_mask(facl)
     entry = acl.Entry(facl)
     entry.tag_type = acl.ACL_USER
     entry.qualifier = user_id
@@ -94,7 +108,7 @@ def get_or_create_entry(facl: acl.ACL, tag_type: int, qualifier: int):
     entry.qualifier = qualifier
     return entry
 
-def apply_acl_safely(facl: acl.ACL, file: str, type: int = acl.ACL_TYPE_ACCESS,):
+def apply_acl_safely(facl: acl.ACL, file: str, type: int = acl.ACL_TYPE_ACCESS):
     """
     Try to apply an ACL.
     If it fails, run validation to work out why it might have failed.
