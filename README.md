@@ -6,7 +6,6 @@ A web app for editing Posix file access control lists (ACLs)
 
 ```
 git clone https://github.com/WEHI-ResearchComputing/DashAclEditor.git
-pip install DashAclEditor
 ```
 
 ## Usage
@@ -14,7 +13,7 @@ pip install DashAclEditor
 ### Development
 
 ```
-python DashAclEditor/local.py
+pixi run dev-server
 ```
 
 ### Production (Passenger)
@@ -27,9 +26,7 @@ passenger start
 ### Production - gunicorn
 
 ```
-pip install gunicorn
-cd DashAclEditor
-gunicorn -w 4 passenger_wsgi:application
+pixi run prod-server
 ```
 
 ## Configuration
