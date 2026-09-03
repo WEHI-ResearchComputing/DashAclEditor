@@ -17,3 +17,6 @@ dependencies = [
     "pydantic ~= 2.6.1"
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+server = ["gunicorn"]
