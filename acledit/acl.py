@@ -72,29 +72,32 @@ def grant_user(file_path: str, user_id: int, permissions: list[ACL_PERMISSION] =
         for child in path.iterdir():
             grant_user(str(child), user_id, permissions=permissions, default=default, recursive=recursive)
 
-def ensure_mask(facl: acl.ACL):
+def ensure_mask(facl: acl.ACL) -> acl.Entry:
     """
-    Adds a rwx mask to the ACL if it doesn't already exist
+    Adds a rwx mask to the ACL if it doesn't already exist, and returns the mask entry
     """
     for entry in facl:
         if entry.tag_type == acl.ACL_MASK:
-            return
+            return entry
     mask = acl.Entry(facl)
     mask.tag_type = acl.ACL_MASK
     mask.permset.add(acl.ACL_READ)
     mask.permset.add(acl.ACL_WRITE)
     mask.permset.add(acl.ACL_EXECUTE)
+    return mask
 
 def grant_user_entry(facl: acl.ACL, user_id: int, permissions: list[ACL_PERMISSION] = []):
     """
     Grant a user some permissions onto an existing ACL
     """
-    ensure_mask(facl)
+    mask = ensure_mask(facl)
     entry = acl.Entry(facl)
     entry.tag_type = acl.ACL_USER
     entry.qualifier = user_id
     for perm in permissions:
         entry.permset.add(perm)
+        # The mask needs to be at least as permissive as the entry, as it caps the permissions
+        mask.permset.add(perm)
 
 def get_or_create_entry(facl: acl.ACL, tag_type: int, qualifier: int):
     """
@@ -149,12 +152,16 @@ def execute_share(
     # We iterate in reverse so that we can fail early
     for parent in reversed(current_path.parents):
         if parent.owner() == current_user:
+            parent_facl = acl.ACL(file=str(parent))
+            mask = ensure_mask(parent_facl)
             entry = get_or_create_entry(
-                facl=acl.ACL(file=str(parent)),
+                facl=parent_facl,
                 tag_type=acl.ACL_USER,
                 qualifier=recipient_id,
             )
             entry.permset.execute = True
+            mask.permset.add(acl.ACL_EXECUTE)
+            apply_acl_safely(parent_facl, str(parent), type=acl.ACL_TYPE_ACCESS)
         else:
             parent_acl = AclSet.from_file(str(parent))
             if not parent_acl.can_access(share_user):

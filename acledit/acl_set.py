@@ -48,6 +48,16 @@ STR_TO_ACL_TYPE: dict[ACL_TYPE_STR, int] = dict(
 )
 ACL_TYPE_TO_STR: dict[int, ACL_TYPE_STR] = {value: key for key, value in STR_TO_ACL_TYPE.items()}
 
+
+def is_group_member(user: str, group_name: str) -> bool:
+    """
+    Returns True if `user` is a member of `group_name`
+
+    Checks both the user's primary group and any supplementary groups
+    """
+    group = grp.getgrnam(group_name)
+    return user in group.gr_mem or pwd.getpwnam(user).pw_gid == group.gr_gid
+
 class AclEntry(BaseModel):
     """
     Represents a single ACL entry via Python data structures
@@ -114,7 +124,7 @@ class AclSet(BaseModel):
         if self.default_acls is not None:
             yield from self.default_acls
 
-    def find_entry(self, default: bool, type: str, qualifier: str | None) -> AclEntry | None:
+    def find_entry(self, default: bool, type: ACL_TYPE_STR, qualifier: str | None) -> AclEntry | None:
         """
         Returns an existing entry with the given attributes
         """
@@ -124,6 +134,42 @@ class AclSet(BaseModel):
         except StopIteration:
             # If nothing is found, return None
             return None
+
+    @property
+    def owner_entry(self) -> AclEntry:
+        """
+        Returns the owner ACL entry for this file
+
+        As per the spec (https://man7.org/linux/man-pages/man5/acl.5.html#VALID_ACLs), there must always be an owner entry
+        """
+        entry = self.find_entry(default=False, type="owner", qualifier=None)
+        if entry is None:
+            raise Exception("This ACL set has no owner entry, which is invalid")
+        return entry
+
+    @property
+    def group_owner_entry(self) -> AclEntry:
+        """
+        Returns the group owner ACL entry for this file
+
+        As per the spec (https://man7.org/linux/man-pages/man5/acl.5.html#VALID_ACLs), there must always be a group owner entry
+        """
+        entry = self.find_entry(default=False, type="group_owner", qualifier=None)
+        if entry is None:
+            raise Exception("This ACL set has no group owner entry, which is invalid")
+        return entry
+
+    @property
+    def other_entry(self) -> AclEntry:
+        """
+        Returns the other ACL entry for this file
+
+        As per the spec (https://man7.org/linux/man-pages/man5/acl.5.html#VALID_ACLs), there must always be an other entry
+        """
+        entry = self.find_entry(default=False, type="other", qualifier=None)
+        if entry is None:
+            raise Exception("This ACL set has no other entry, which is invalid")
+        return entry
 
     def qualified_acls(self, default: bool = False) -> Iterable[AclEntry]:
         """
@@ -152,24 +198,54 @@ class AclSet(BaseModel):
     def can_access(self, user: str, permission: str = "read") -> bool:
         """
         Returns True if the given user has `permission` on this file or directory
+
+        This exactly follows the access check algorithm: https://man7.org/linux/man-pages/man5/acl.5.html#ACCESS_CHECK_ALGORITHM.
         Note that this doesn't consider parent directories
         
         Params:
             permission: either "read", "write" or "execute"
             user: a username
         """
+        mask_entry = self.find_entry(default=False, type="mask", qualifier=None)
+
+        # Step 1. Note that the mask is deliberately not checked here
+        if Path(self.file_path).owner() == user:
+            return getattr(self.owner_entry, permission)
+
+        # Step 2
+        user_entry = self.find_entry(default=False, type="user", qualifier=user)
+        if user_entry is not None:
+            if mask_entry is None:
+                # An ACL that contains entries of ACL_USER or ACL_GROUP tag types must contain exactly one entry of the ACL_MASK tag type
+                raise Exception("This ACL set has a user entry but no mask entry, which is invalid")
+            return getattr(user_entry, permission) and getattr(mask_entry, permission)
+
+        # Step 3
+        found = False
         for entry in self.acls:
-            if entry.tag_type == "other" and getattr(entry, permission):
-                return True
-            elif entry.tag_type == "user" and entry.qualifier == user and getattr(entry, permission):
-                return True
-            elif entry.tag_type == "group" and getattr(entry, permission) and entry.qualifier is not None:
-                grp_members = grp.getgrnam(entry.qualifier).gr_mem
-                if user in grp_members:
-                    return True
-            elif entry.tag_type == "owner" and Path(self.file_path).owner() == user and getattr(entry, permission):
-                return True
-        return False
+            if entry.tag_type == "group" and entry.qualifier is not None:
+                if is_group_member(user, entry.qualifier):
+                    found = True
+                    if mask_entry is None:
+                        raise Exception("This ACL set has a group entry but no mask entry, which is invalid")
+                    if getattr(entry, permission) and getattr(mask_entry, permission):
+                        # Successes return immediately, but failures require us to check the other groups
+                        return True
+            elif entry.tag_type == "group_owner":
+                if is_group_member(user, Path(self.file_path).group()):
+                    found = True
+                    # The mask only applies to the group owner entry if it exists, per the spec
+                    if mask_entry is None:
+                        if getattr(entry, permission):
+                            return True
+                    elif getattr(entry, permission) and getattr(mask_entry, permission):
+                        return True
+        if found:
+            # If the user was found to be a member of at least one group, but none of those groups had the permission, return False
+            return False
+
+        # Step 4 and 5
+        return getattr(self.other_entry, permission)
 
     def apply(self):
         """
