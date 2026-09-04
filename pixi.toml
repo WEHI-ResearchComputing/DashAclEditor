@@ -8,10 +8,11 @@ version = "0.1.0"
 [tasks]
 dev-server = { cmd = "python local.py", description = "Run the development server" }
 prod-server = { cmd = "gunicorn -w 4 passenger_wsgi:application", description = "Run the production server" }
+test = { cmd = "pytest", description = "Run the test suite" }
 
 [dependencies]
 python = "3.10.*"
 libacl = "*"
 
 [pypi-dependencies]
-acledit = { path = ".", editable = true, extras = ["server"] }
+acledit = { path = ".", editable = true, extras = ["server", "dev"] }
