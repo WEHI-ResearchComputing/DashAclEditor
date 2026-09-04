@@ -20,3 +20,4 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 server = ["gunicorn"]
+dev = ["pytest"]
